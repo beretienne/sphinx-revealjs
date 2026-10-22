@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import re
 from pathlib import Path
+
 from sphinx_revealjs import __version__
 
 PROJ_ROOT = Path(__file__).parents[1]
@@ -14,6 +14,9 @@ release = __version__
 
 # -- General configuration ---------------------------------------------------
 extensions = [
+    "atsphinx.footnotes",
+    "atsphinx.htmx_boost",
+    "sphinx.ext.autodoc",
     "sphinx.ext.intersphinx",
     "sphinx.ext.todo",
 ]
@@ -76,6 +79,8 @@ intersphinx_mapping = {
 }
 # For sphinx.ext.todo
 todo_include_todos = True
+# For atsphinx.htmx_boost
+htmx_boost_preload = "mouseover"
 
 
 def setup(app):

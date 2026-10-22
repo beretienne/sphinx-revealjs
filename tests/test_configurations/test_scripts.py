@@ -1,4 +1,5 @@
 """Build tests for configuration parameters."""
+
 import pytest
 from sphinx.testing.util import SphinxTestApp
 from testutils import soup_html
@@ -54,7 +55,41 @@ class TestForRevealjsScriptConfig:  # noqa
     def test_using_as_dict(self, app: SphinxTestApp, status, warning):  # noqa
         soup = soup_html(app, "index.html")
         assert (
-            'Object.assign(revealjsConfig, JSON.parse(\'{"transition": "none"}\'));'
+            'Object.assign(revealjsConfig, {"transition": "none", "scrollActivationWidth": null});'  # noqa: E501
+            in str(soup.find_all("script")[-1])
+        )
+
+    @pytest.mark.sphinx(
+        "revealjs",
+        testroot="for-config",
+    )
+    def test_not_use(self, app: SphinxTestApp, status, warning):  # noqa
+        soup = soup_html(app, "index.html")
+        assert 'Object.assign(revealjsConfig, {"scrollActivationWidth": null});' in str(
+            soup.find_all("script")[-1]
+        )
+
+    @pytest.mark.sphinx(
+        "revealjs",
+        testroot="for-config",
+        confoverrides={"revealjs_script_conf": {"param": "This is 'one'"}},
+    )
+    def test_with_quotes(self, app: SphinxTestApp, status, warning):  # noqa
+        soup = soup_html(app, "index.html")
+        assert (
+            'Object.assign(revealjsConfig, {"param": "This is \'one\'", "scrollActivationWidth": null});'  # noqa: E501
+            in str(soup.find_all("script")[-1])
+        )
+
+    @pytest.mark.sphinx(
+        "revealjs",
+        testroot="for-config",
+        confoverrides={"revealjs_script_conf": {"param": 'This is "one"'}},
+    )
+    def test_with_double_quotes(self, app: SphinxTestApp, status, warning):  # noqa
+        soup = soup_html(app, "index.html")
+        assert (
+            r'Object.assign(revealjsConfig, {"param": "This is \"one\"", "scrollActivationWidth": null});'  # noqa: E501
             in str(soup.find_all("script")[-1])
         )
 
@@ -66,7 +101,7 @@ class TestForRevealjsScriptConfig:  # noqa
         "revealjs_script_plugins": [
             {
                 "name": "RevealNotes",
-                "src": "revealjs4/plugin/notes/notes.js",
+                "src": "revealjs/plugin/notes/notes.js",
             }
         ]
     },
@@ -78,5 +113,5 @@ def test_revealjs_script_plugins(app: SphinxTestApp, status, warning):  # noqa
     for d in soup.find_all("script"):
         print(d)
     scripts = [d["src"] for d in soup.find_all("script") if "src" in d.attrs]
-    assert "_static/revealjs4/plugin/notes/notes.js" in scripts
+    assert "_static/revealjs/plugin/notes/notes.js" in scripts
     assert "RevealNotes" in str(soup)

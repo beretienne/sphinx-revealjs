@@ -4,62 +4,85 @@
 This script need to run these case.
 
 * After editable install
-* Before build package archibves
+* Before build package archives
 """
+
+import argparse
 import json
 import logging
 import shutil
 import sys
 import tarfile
+import tempfile
 from pathlib import Path
+from typing import Dict
 from urllib.request import urlretrieve
 
 ROOT_DIR = Path(__file__).parent.parent.absolute()
 
 RULE = {
     "name": "reveal.js",
-    "src": ["css", "dist", "plugin", "LICENSE"],
-    "dest": "sphinx_revealjs/themes/sphinx_revealjs/static/revealjs4",
+    "targets": {
+        "package/css": "css",
+        "package/dist": "dist",
+        "package/plugin": "plugin",
+        "package/LICENSE": "LICENSE",
+    },
+    "dest": "sphinx_revealjs/_static/revealjs",
 }
 
 
 def find_package(src: Path, name: str) -> dict:
     """Pick package file URL from package-lock.json."""
     package_lock = json.loads(src.read_text())
-    deps = [m for n, m in package_lock.get("dependencies", {}).items() if n == name]
+    package_name = f"node_modules/{name}"
+    deps = [m for n, m in package_lock.get("packages", {}).items() if n == package_name]
     if len(deps) == 0:
         raise ValueError(f"Invalid name: ({name})")
     return deps[0]
 
 
-def extract_archive(target: Path) -> Path:  # noqa: D103
-    dest = target.parent / target.stem
-    with tarfile.open(str(target)) as tr:
-        tr.extractall(str(dest))
-    return dest
+def extract_archive(source: Path, dest: Path, targets: Dict[str, str]):  # noqa: D103
+    extract_dir = Path(tempfile.mkdtemp())
+    with tarfile.open(str(source)) as tr:
+        for trf in tr.getmembers():
+            is_target = False
+            for name in targets.keys():
+                if trf.name.startswith(f"{name}"):
+                    is_target = True
+                    continue
+            if not is_target:
+                continue
+            tr.extract(trf, extract_dir)
+    for s, d in targets.items():
+        src_path = extract_dir / s
+        dest_path = dest / d  # type: ignore
+        if src_path.is_dir():
+            for child in src_path.iterdir():
+                stale = dest_path / child.name
+                if stale.is_dir():
+                    shutil.rmtree(stale)
+                elif stale.exists():
+                    stale.unlink()
+            shutil.copytree(src_path, dest_path, dirs_exist_ok=True)
+        else:
+            dest_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(src_path, dest_path)
 
 
-def main():  # noqa: D103
-    package_lock_json = ROOT_DIR / "package-lock.json"
-    package = find_package(package_lock_json, RULE["name"])
+def main(args: argparse.Namespace):  # noqa: D103
+    dest = Path(RULE["dest"])  # type: ignore
+    # Extra plugins tracked in git (e.g. plugin/audio-slideshow) live in the same
+    # tree, so dest is not removed: extract_archive replaces only fetched entries.
+    if (dest / "dist").exists() and not args.force:
+        print("Dest directory is already exists")
+        sys.exit(1)
+    lockfile_json = ROOT_DIR / "npm-shrinkwrap.json"
+    package = find_package(lockfile_json, RULE["name"])  # type: ignore
     local_archive = ROOT_DIR / "var" / f"{RULE['name']}-{package['version']}.tgz"
     if not local_archive.exists():
         urlretrieve(package["resolved"], local_archive)
-    extracted = extract_archive(local_archive) / "package"
-    dest_base = ROOT_DIR / RULE["dest"]
-    dest_base.mkdir(parents=True, exist_ok=True)
-    for src_ in RULE["src"]:
-        src = extracted / src_
-        dest = ROOT_DIR / RULE["dest"] / src_
-        if dest.exists():
-            if dest.is_file():
-                dest.unlink()
-            else:
-                shutil.rmtree(dest)
-        if src.is_dir():
-            shutil.copytree(src, dest)
-        else:
-            shutil.copy2(src, dest)
+    extract_archive(local_archive, dest, RULE["targets"])  # type: ignore
 
 
 if __name__ == "__main__":
@@ -67,4 +90,7 @@ if __name__ == "__main__":
         logging.error("This script can run only project root.")
         sys.exit(1)
     (ROOT_DIR / "var").mkdir(exist_ok=True)
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-f", "--force", action="store_true", default=False)
+    args = parser.parse_args()
+    main(args)

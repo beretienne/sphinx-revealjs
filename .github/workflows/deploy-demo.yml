@@ -2,8 +2,9 @@ name: Deploy demo presentation
 
 on:
   push:
-    branches:
-      - master
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -18,21 +19,24 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v1
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.11'
       - name: Make demo page
         run: |
-          pip install -r demo/revealjs4/requirements.txt
-          make -C demo/revealjs4 demo
-          touch demo/revealjs4/_build/revealjs/.nojekyll
+          python tools/fetch_revealjs.py
+          pip install ".[screenshot,demo]"
+          playwright install
+          make -C demo mini18n-revealjs
+          touch demo/_build/mini18n-revealjs/.nojeykll
         env:
           GTAGJS_IDS: ${{ secrets.GTAGJS_IDS }}
+          DEMO_URL_BASE: "https://attakei.github.io/sphinx-revealjs/"
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:
-          path: demo/revealjs4/_build/revealjs/
+          path: demo/_build/mini18n-revealjs/
   deploy:
     needs: build
     runs-on: ubuntu-latest

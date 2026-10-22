@@ -1,5 +1,6 @@
 """Custom docutils nodes for Reveal.js."""
-from docutils import nodes
+
+from docutils import nodes  # type: ignore
 
 
 class FlagAttribute(object):
@@ -28,15 +29,15 @@ class SectionTagRenderer(object):
         return " ".join(pair)
 
 
-class revealjs_section(
-    SectionTagRenderer, nodes.Structural, nodes.Element
-):  # noqa: D101,E501
+class revealjs_vertical(SectionTagRenderer, nodes.Structural, nodes.Element):  # noqa: D101,E501
     pass
 
 
-class revealjs_break(
-    SectionTagRenderer, nodes.Structural, nodes.Element
-):  # noqa: D101,E501
+class revealjs_section(SectionTagRenderer, nodes.Structural, nodes.Element):  # noqa: D101,E501
+    pass
+
+
+class revealjs_break(SectionTagRenderer, nodes.Structural, nodes.Element):  # noqa: D101,E501
     pass
 
 

@@ -1,8 +1,9 @@
 """Custom directives for Reveal.js."""
+
 import json
 
-from docutils.nodes import Sequential
-from docutils.parsers.rst import Directive, directives
+from docutils.nodes import Sequential  # type: ignore
+from docutils.parsers.rst import Directive, directives  # type:ignore
 from sphinx.util import logging
 
 from sphinx_revealjs.nodes import (
@@ -11,6 +12,7 @@ from sphinx_revealjs.nodes import (
     revealjs_fragments,
     revealjs_section,
     revealjs_slide,
+    revealjs_vertical,
 )
 
 logger = logging.getLogger(__name__)
@@ -27,10 +29,25 @@ def raw_json(argument):
     return argument
 
 def set_audio_path(self):
-    path = self.state.document.settings.env.config.revealjs_script_conf['audio']['prefix'] or ''
-    suffix = self.state.document.settings.env.config.revealjs_script_conf['audio']['suffix'] or ''
+    audio_conf = self.state.document.settings.env.config.revealjs_script_conf['audio']
+    path = audio_conf['prefix'] or ''
+    suffix = audio_conf['suffix'] or ''
     audio_file_name = path + self.options['data-audio-src'] + suffix
     self.options['data-audio-src'] = audio_file_name
+
+
+class RevealjsSectionAttributes(dict):
+    def __getitem__(self, key):
+        """Extend dict for custom plugins of revealjs.
+
+        Many plugins may refer ``data-`` attributes
+        of ``section`` elements as optional behaviors.
+        """
+        if key in self:
+            return super().__getitem__(key)
+        if key.startswith("data-"):
+            return directives.unchanged
+        return None
 
 
 REVEALJS_SECTION_ATTRIBUTES = {
@@ -75,8 +92,19 @@ REVEALJS_SECTION_ATTRIBUTES = {
 }
 
 
+class RevealjsVertical(Directive):  # noqa: D101
+    option_spec = RevealjsSectionAttributes(**REVEALJS_SECTION_ATTRIBUTES)
+
+    def run(self):  # noqa: D102
+        node = revealjs_vertical()
+        node.attributes = self.options
+        return [
+            node,
+        ]
+
+
 class RevealjsSection(Directive):  # noqa: D101
-    option_spec = REVEALJS_SECTION_ATTRIBUTES
+    option_spec = RevealjsSectionAttributes(**REVEALJS_SECTION_ATTRIBUTES)
 
     def run(self):  # noqa: D102
         node = revealjs_section()
@@ -89,10 +117,10 @@ class RevealjsSection(Directive):  # noqa: D101
 
 
 class RevealjsBreak(Directive):  # noqa: D101
-    option_spec = dict(
+    option_spec = RevealjsSectionAttributes(
         # if it is set, next section does not display title
         notitle=lambda x: FlagAttribute(),
-        **REVEALJS_SECTION_ATTRIBUTES
+        **REVEALJS_SECTION_ATTRIBUTES,
     )
 
     def run(self):  # noqa: D102
@@ -115,6 +143,8 @@ class RevealjsSlide(Directive):  # noqa: D101
     }
 
     def run(self):  # noqa: D102
+        if "google_font" in self.options:
+            logger.warning("DEPRECATED: 'google_font' is not working already.")
         node = revealjs_slide()
         node.attributes = self.options
         node.content = "\n".join(self.content or [])
@@ -126,6 +156,10 @@ class RevealjsSlide(Directive):  # noqa: D101
 class RevealjsFragments(Directive):  # noqa: D101
     has_content = True
 
+    option_spec = {
+        "custom-effect": directives.unchanged,
+    }
+
     def run(self):  # noqa: D102
         node = revealjs_fragments()
         if self.content:
@@ -134,9 +168,13 @@ class RevealjsFragments(Directive):  # noqa: D101
         for child in node.children:
             if not isinstance(child, Sequential):
                 child["classes"].append("fragment")
+                if "custom-effect" in self.options:
+                    child["classes"] += ["custom", self.options["custom-effect"]]
                 continue
             for c in child:
                 c["classes"].append("fragment")
+                if "custom-effect" in self.options:
+                    c["classes"] += ["custom", self.options["custom-effect"]]
         return [
             node,
         ]

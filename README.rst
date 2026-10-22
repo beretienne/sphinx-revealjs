@@ -4,11 +4,8 @@ sphinx-revealjs
 .. image:: https://img.shields.io/pypi/v/sphinx-revealjs.svg
     :target: https://pypi.org/project/sphinx-revealjs/
 
-.. image:: https://github.com/attakei/sphinx-revealjs/workflows/Testings/badge.svg
+.. image:: https://github.com/attakei/sphinx-revealjs/actions/workflows/main.yml/badge.svg
     :target: https://github.com/attakei/sphinx-revealjs/actions
-
-.. image:: https://travis-ci.org/attakei/sphinx-revealjs.svg?branch=master
-    :target: https://travis-ci.org/attakei/sphinx-revealjs
 
 .. image:: https://readthedocs.org/projects/sphinx-revealjs/badge/?version=latest
     :target: https://sphinx-revealjs.readthedocs.io/en/latest/?badge=latest
@@ -60,7 +57,7 @@ Usage
 Change logs
 -----------
 
-See `it <./CHANGES.rst>`_
+See `it <./CHANGELOG.rst>`_
 
 Policy for following to Reveal.js version
 -----------------------------------------
@@ -71,8 +68,8 @@ I plan to update it at patch-version for catch up when new Reveal.js version rel
 * If Reveal.js updated minor or patch version, sphinx-revealjs update patch version.
 * If Reveal.js updated major version, sphinx-revealjs update minor version with compatible for two versions.
 
-Contributings
--------------
+Contributing
+------------
 
 GitHub repository does not have reveal.js library.
 
@@ -82,8 +79,7 @@ If you use from GitHub and editable mode, Run ``tools/fetch_revealjs.py`` after 
 
     $ git clone https://github.com/attakei/sphinx-revealjs
     $ cd sphinx-revealjs
-    $ poetry install
-    $ poetry run python tools/fetch_revealjs.py
+    $ python tools/fetch_revealjs.py
 
 For more information, See `CONTRIBUTING.rst <./CONTRIBUTING.rst>`_ and `"contributing" <https://sphinx-revealjs.readthedocs.io/en/stable/contributing/>`_ page in documentation.
 

@@ -1,0 +1,8 @@
+*
+!.gitignore
+# Reveal.js is fetched by tools/fetch_revealjs.py; only the extra audio-slideshow plugin is tracked.
+!revealjs/
+revealjs/*
+!revealjs/plugin/
+revealjs/plugin/*
+!revealjs/plugin/audio-slideshow/

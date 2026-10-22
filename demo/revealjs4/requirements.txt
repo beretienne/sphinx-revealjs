@@ -1,7 +1,0 @@
---find-links=https://github.com/attakei-lab/sphinxcontrib-oembed/releases
---find-links=https://github.com/attakei-lab/sphinxcontrib-sass/releases
-sphinx-revealjs
-sphinxcontrib-gtagjs
-sphinxcontrib-budoux
-sphinxcontrib-oembed
-sphinxcontrib-sass

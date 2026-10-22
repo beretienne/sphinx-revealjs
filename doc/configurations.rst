@@ -43,6 +43,20 @@ Basic configurations
 
    Flag that does builder generate ``genindex.html`` (same as :confval:`sphinx:html_use_index` ).
 
+.. confval:: revealjs_html_theme
+
+   :Type: ``str``
+   :Default: ``revealjs-basic``
+   :Example: ``revealjs-simple``
+
+   Using HTML Theme for output contents.
+   It can set any html theme, but it should set theme made for revealjs.
+
+   Bundled themes are:
+
+   * ``revealjs-basic`` : Inherit style from basic html theme.
+   * ``revealjs-simple`` : Minimal defined style.
+
 Style Configurations
 ====================
 
@@ -66,7 +80,7 @@ Presentation Configurations
    :Default: ``False``
 
    If this is set ``True``,
-   inject ``id`` attribute into ``section`` element (parent of headerings).
+   inject ``id`` attribute into ``section`` element (parent of headings).
    This means that change format of internal links (default is numbering style).
 
 .. confval:: revealjs_script_files
@@ -100,6 +114,14 @@ Presentation Configurations
 
    * If value is string type, handle as raw javascript code.
    * If value is dict object, convert to json string at internal.
+
+   .. note::
+
+      For behavior compatibility,
+      it appends ``{"scrollActivationWidth": None}`` as default configuration
+      when value is dict object or is not set.
+
+      See it: https://github.com/hakimel/reveal.js/releases/tag/5.0.0
 
    Example 1: case of str
 
@@ -146,7 +168,7 @@ Presentation Configurations
       <!-- here!! -->
       <script>
         let revealjsConfig = {};
-        revealjsConfig = Object.assign(revealjsConfig, JSON.parse('{"controls": false, "transition": "zoom"}'));
+        revealjsConfig = Object.assign(revealjsConfig, JSON.parse('{"controls": false, "transition": "zoom", "scrollActivationWidth": null}'));
         revealjs.initialize(revealjsConfig);
       </script>
 
@@ -168,7 +190,7 @@ Presentation Configurations
 
       revealjs_script_plugins = [
           {
-              "src": "revealjs4/plugin/highlight/highlight.js",
+              "src": "revealjs/plugin/highlight/highlight.js",
               "name": "RevealHighlight",
           },
       ]
@@ -194,28 +216,3 @@ Presentation Configurations
 
    If this is set `True`, builder writes notes section from comment block.
 
-Font configurations
-===================
-
-.. note::
-
-   These configurations will be dropped when version 2.x.
-
-   You can use raw CSS or `googlefonts-markup <https://pypi.org/project/googlefonts-markup/>`_ instead of these.
-
-.. confval:: revealjs_google_fonts
-
-   :Type: ``dict``
-   :Default: ``[]``
-   :Example: ``[]``
-
-   List of using fonts from `Google Fonts <https://fonts.google.com/>`_.
-   If this value is set, render ``link`` and ``style`` tags into html.
-
-.. confval:: revealjs_generic_font
-
-   :Type: ``str``
-   :Default: ``sans-serif``
-   :Example: ``serif``, ``monospace``
-
-   If you use ``revealjs_google_fonts``, set last of ``font-family`` style.

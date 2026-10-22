@@ -2,7 +2,7 @@
 Customizing design simply
 =========================
 
-When using bundled theme, you can customze design by adding custom CSS.
+When using bundled theme, you can customize design by adding custom CSS.
 
 Example: Disable transform style in header text
 ===============================================
@@ -18,7 +18,7 @@ Source
    :name: conf-py
 
    revealjs_css_files = [
-       "revealjs4/plugin/highlight/zenburn.css",
+       "revealjs/plugin/highlight/zenburn.css",
        "custom.css",
    ]
 

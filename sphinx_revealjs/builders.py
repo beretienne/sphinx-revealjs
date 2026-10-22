@@ -1,9 +1,10 @@
 """Definition for sphinx custom builder."""
+
 import copy
 import logging
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
-from sphinx import version_info as sphinx_versoin
+from sphinx import version_info as sphinx_version
 from sphinx.application import Sphinx
 from sphinx.builders.dirhtml import DirectoryHTMLBuilder
 from sphinx.builders.html import StandaloneHTMLBuilder
@@ -15,7 +16,7 @@ from sphinx_revealjs.directives import raw_json
 from sphinx_revealjs.writers import RevealjsSlideTranslator
 
 from .contexts import RevealjsPlugin, RevealjsProjectContext
-from .utils import static_resource_uri
+from .utils import get_internal_static_path, static_resource_uri
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,7 @@ class RevealjsHTMLBuilder(StandaloneHTMLBuilder):
 
     def __init__(self, app, env: BuildEnvironment = None):  # noqa: D107
         # TODO: Remove it if this not need support Sphinx 5.1.0 and older
-        if sphinx_versoin[0] <= 4 or sphinx_versoin[:2] == (5, 0):
+        if sphinx_version[0] <= 4 or sphinx_version[:2] == (5, 0):
             super().__init__(app)
         else:
             super().__init__(app, env)
@@ -40,13 +41,18 @@ class RevealjsHTMLBuilder(StandaloneHTMLBuilder):
 
     def init(self):  # noqa
         # Create RevealjsProjectContext
+        script_conf = getattr(self.config, "revealjs_script_conf")
+        if not script_conf:
+            script_conf = {}
+        if isinstance(script_conf, dict):
+            script_conf.setdefault("scrollActivationWidth", None)
         self.revealjs_context = RevealjsProjectContext(
             4,
             [  # noqa: W503
                 static_resource_uri(src)
                 for src in getattr(self.config, "revealjs_script_files", [])
             ],
-            getattr(self.config, "revealjs_script_conf", None),
+            script_conf,
             [
                 RevealjsPlugin(
                     static_resource_uri(plugin["src"]),
@@ -56,6 +62,7 @@ class RevealjsHTMLBuilder(StandaloneHTMLBuilder):
                 for plugin in getattr(self.config, "revealjs_script_plugins", [])
             ],
         )
+        self.config.revealjs_static_path.append(str(get_internal_static_path()))
         # Hand over builder configs to html builder.
         setattr(self.config, "html_static_path", self.config.revealjs_static_path)
         super().init()
@@ -78,11 +85,10 @@ class RevealjsHTMLBuilder(StandaloneHTMLBuilder):
 
         Find theme and merge options.
         """
-        theme_name = getattr(self.config, "revealjs_theme", "sphinx_revealjs")
         theme_options = getattr(self.config, "revealjs_theme_options", {})
         config = raw_json(theme_options.get("revealjs_config", ""))
         theme_options["revealjs_config"] = config
-        return theme_name, theme_options
+        return self.config.revealjs_html_theme, theme_options
 
     def get_doc_context(self, docname, body, metatags):
         """Return customized context.
@@ -90,7 +96,11 @@ class RevealjsHTMLBuilder(StandaloneHTMLBuilder):
         if source has ``revealjs_slide`` property, add configures.
         """
         ctx = super().get_doc_context(docname, body, metatags)
-        ctx["css_files"] = copy.copy(self.css_files)
+        # TODO: Add note it why it copies from properties
+        if sphinx_version[0] >= 8:
+            ctx["css_files"] = copy.copy(self._css_files)
+        else:
+            ctx["css_files"] = copy.copy(self.css_files)
         ctx["revealjs"] = self.revealjs_context
         return ctx
 
@@ -129,10 +139,13 @@ class RevealjsHTMLBuilder(StandaloneHTMLBuilder):
             configs.append(self.revealjs_slide.content)
         return configs
 
+    def prepare_writing(self, docnames: Set[str]):
+        super().prepare_writing((docnames))
+        self.events.emit("revealjs:ready-for-writing", self.globalcontext)
+
 
 class DirectoryRevealjsHTMLBuilder(DirectoryHTMLBuilder, RevealjsHTMLBuilder):
-    """
-    Custom RevealjsHTMLBuilder to generate all HTML pages as ``index.html``.
+    """Custom RevealjsHTMLBuilder to generate all HTML pages as ``index.html``.
 
     This does not have specific features, only inherit base builders.
     """
@@ -141,8 +154,7 @@ class DirectoryRevealjsHTMLBuilder(DirectoryHTMLBuilder, RevealjsHTMLBuilder):
 
 
 def convert_reveal_js_files(app: Sphinx, config: Config) -> None:
-    """
-    Convert string styled html_js_files to tuple styled one.
+    """Convert string styled html_js_files to tuple styled one.
 
     Original is :py:func:`sphinx.builders.html.convert_html_js_files`.
     """
@@ -157,4 +169,5 @@ def convert_reveal_js_files(app: Sphinx, config: Config) -> None:
             except Exception:
                 logger.warning(__("invalid js_file: %r, ignored"), entry)
                 continue
+    config.revealjs_js_files = revealjs_js_files  # type: ignore
     config.revealjs_js_files = revealjs_js_files  # type: ignore

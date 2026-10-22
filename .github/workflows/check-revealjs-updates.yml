@@ -2,7 +2,7 @@ name: Check updates of reveal.js
 
 on:
   schedule:
-    - cron: '30 0 * * 1'
+    - cron: '30 0 * * *'
   workflow_dispatch:
 
 jobs:
@@ -13,18 +13,18 @@ jobs:
       - name: Try update package.json
         id: checked
         run: |
-          version=`jq < package-lock.json '.dependencies."reveal.js".version' -r`
+          version=`jq < npm-shrinkwrap.json '.packages."node_modules/reveal.js".version' -r`
           echo "::set-output name=revealjs_current::${version}"
           npm i
           npm update -S
-          version=`jq < package-lock.json '.dependencies."reveal.js".version' -r`
+          version=`jq < npm-shrinkwrap.json '.packages."node_modules/reveal.js".version' -r`
           echo "::set-output name=revealjs_updated::${version}"
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v3
         with:
           token: ${{ secrets.GH_PAT }}
           branch: update/revealjs-${{ steps.checked.outputs.revealjs_updated }}
-          commit-message: "Update reveal.js"
+          commit-message: "build(deps): Use latest Reveal.js"
           title: "Update reveal.js from v${{ steps.checked.outputs.revealjs_current }} to ${{ steps.checked.outputs.revealjs_updated }}"
           delete-branch: true
           body: |
